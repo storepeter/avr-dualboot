@@ -1,0 +1,188 @@
+diff --git a/optiboot/bootloaders/optiboot/optiboot.c b/optiboot/bootloaders/optiboot/optiboot.c
+index 6d9e0cc..155f6ac 100644
+--- a/optiboot/bootloaders/optiboot/optiboot.c
++++ b/optiboot/bootloaders/optiboot/optiboot.c
+@@ -239,6 +239,11 @@
+ /**********************************************************/
+ /* Edit History:                                          */
+ /*                                                        */
++/* Jan 2024                                               */
++/* 108.3 StorePeter DualBoot, 2 firmwares onchip          */
++/*     io-pin defined by DUALBOOT decides firmware to run */
++/*     if 2nd, set IVSEL, irqs-vectors table in bootloader*/
++/*     jmp to 2nd irqcode via table at BOOTSTART-256      */
+ /* Oct 2021                                               */
+ /* 8.3 WestfW add section-start determination code to     */
+ /*     the C source.  In theory, this causes no changes   */
+@@ -354,6 +359,38 @@ optiboot_version = 256*(OPTIBOOT_MAJVER + OPTIBOOT_CUSTOMVER) + OPTIBOOT_MINVER;
+ #include <avr/pgmspace.h>
+ #include <avr/eeprom.h>
+ 
++#ifdef DUALBOOT
++static uint8_t vector_info_read_byte( uint8_t);
++#define STR_HELPER(x) #x
++#define STR(x) STR_HELPER(x)
++#define ERR_MSG(x) #x " is " STR(x)
++// IO-pin is referenced as Port,Bit f.ex arduino pin13 is B,7
++// hence we only only need one define per pin passed from the Makefile
++//, where optiboot uses separate defines for port and bit
++// _... macroes unravels the setting needed
++// G_... is only used by the _... macroes
++#define G_REG(reg,port,bit)	reg ## port
++#define G_BIT(port,bit)		bit
++#define G_MASK(port,bit)	(1<<bit)
++#define G_STR(port,bit)		STR(port) "," STR(bit)
++#define _PORT(...)	G_REG(PORT,__VA_ARGS__)
++#define _DDR(...)	G_REG(DDR,__VA_ARGS__)
++#define _PIN(...)	G_REG(PIN,__VA_ARGS__)
++#define _BIT(...)	G_BIT(__VA_ARGS__)
++#define _MASK(...)	G_MASK(__VA_ARGS__)
++
++#if defined(__AVR_ATmega328P__) 
++  #define VECT_SZ 128
++  #define VECT_BASE (FLASHEND - 511 - VECT_SZ)
++#elif defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega2560__)
++  #define VECT_SZ 256 
++  #define VECT_BASE (FLASHEND - 1023 - VECT_SZ)
++#else
++ #error MCU not supported, please feel free to add support
++#endif
++#warning VECT_BASE FLASHEND
++#endif // DUALBOOT
++
+ /*
+  * optiboot uses several "address" variables that are sometimes byte pointers,
+  * sometimes word pointers. sometimes 16bit quantities, and sometimes built
+@@ -366,6 +403,10 @@ typedef union {
+   uint16_t *wptr;
+   uint16_t word;
+   uint8_t bytes[2];
++  struct {
++	uint8_t lsb;
++	uint8_t msb;
++  }
+ } addr16_t;
+ 
+ /*
+@@ -699,6 +740,71 @@ void pre_main(void) {
+     "  ret\n"   // if do_spm isn't include, return without doing anything
+ #else
+     "  rjmp    do_spm\n"
++#endif
++#ifdef DUALBOOT
++// rjmp take 2 cycle, jmp takes 3, nop will never be executed
++    "   rjmp (.-256-2)\n" 		// vector 2
++"dualreset: rjmp (.-256-8)\n" 		// vector 1 reset
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 3
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 4
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 5
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 6
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 7
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 8
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 9
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 10
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 11
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 12
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 13
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 14
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 15
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 16
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 17
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 18
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 19
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 20
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 21
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 22
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 23
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 24
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 25
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 26
++// Nore Atmega328p only require 104 byte irq table, (128 should be enough)
++#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega2560__)
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 27
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 28
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 29
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 30
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 31
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 32
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 33
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 34
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 35
++#endif
++#if defined(__AVR_ATmega2560__)
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 36
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 37
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 38
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 39
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 40
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 41
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 42
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 43
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 44
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 45
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 46
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 47
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 48
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 49
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 50
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 51
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 52
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 53
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 54
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 55
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 56
++    "   rjmp (.-256-2)\n" " nop\n"	// vector 57
++#endif
+ #endif
+     "1:\n"
+     );
+@@ -821,6 +927,23 @@ int main(void) {
+       watchdogConfig(WATCHDOG_OFF);
+       // Note that appstart_vec is defined so that this works with either
+       // real or virtual boot partitions.
++#ifdef DUALBOOT
++	_DDR( DUALBOOT) &= ~_MASK(DUALBOOT);	// 50 k internal pullup
++// last byte in vector_info block decide which level of DUALBOOT pin selects 2nd firmware
++	uint8_t b = vector_info_read_byte( VECT_SZ-1);	// 1st/2nd as defsult
++	_PORT(DUALBOOT) |=  _MASK(DUALBOOT);	
++	if (  (b       &&  ( (_PIN(DUALBOOT) & _MASK(DUALBOOT)) ) )
++	   || (b == 0  &&  ( (_PIN(DUALBOOT) & _MASK(DUALBOOT)) == 0 ) )
++	   )  {
++		b = vector_info_read_byte( 0);
++		if (b != 0xff) {	// do not jump to nonexistent firmware
++			uint8_t r = MCUCR;
++			MCUCR = r | (1<<IVCE);	// enable interrupt vectors change
++			MCUCR = r | (1<<IVSEL);	// move interrupt vectors to bootloader
++			asm("  rjmp (dualreset)\n");
++		}
++	}
++#endif	// DUALBOOT
+       __asm__ __volatile__ (
+         // Jump to 'save' or RST vector
+ #ifdef VIRTUAL_BOOT_PARTITION
+@@ -1606,6 +1729,25 @@ static void do_spm(uint16_t address, uint8_t command, uint16_t data) {
+ #endif
+ 
+ 
++#ifdef DUALBOOT
++static uint8_t vector_info_read_byte(uint8_t offset)
++{
++	addr16_t address;
++	uint8_t b;
++	address.msb = VECT_BASE>>8;
++	address.lsb = offset;
++#if defined(RAMPZ)
++	RAMPZ = 3;	//FIXME should this be 1, 3 has also bit 0 set I huess this why this works
++      	__asm__ ("  elpm %0,Z\n" : "=r" (b), "=z" (address.bptr): "1" (address));
++	RAMPZ = 0;
++#else
++	__asm__ ("  lpm %0,Z\n" : "=r" (b), "=z" (address.bptr): "1" (address));
++#endif
++	return b;
++}
++// save 168 bytss, needed for DUALBOOT
++#undef BIGBOOT
++#endif
+ 
+ #if BIGBOOT
+ /*

@@ -1,0 +1,12 @@
+My Chinese clone of USBasp had version 1.02 installed.
+which doesn't work with larger AVR like the ATmega2560.
+
+You can check your version using this command:
+
+	lsusb -v -d 16c0:05dc | grep bcdDevice
+
+So first I had to upgrade the firmware on the USBasp, I couldn't get
+newest version on github to work see: https://github.com/dioannidis/usbasp/issues/32
+
+USBasp v1.08 (commit 8f4beb0 by Nerd Ralph - Mar 24 2021) worked for me.
+https://github.com/dioannidis/usbasp/commit/8f4beb08c61112a071f5b445cdffcdafbe25eccf

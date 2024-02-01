@@ -1,0 +1,6 @@
+*.elf
+*.hex
+*.bin
+build.*
+optiboot
+*~
