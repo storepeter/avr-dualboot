@@ -43,10 +43,12 @@ default:
 	./dualtool.sh
 
 clone: optiboot/optiboot/bootloaders/optiboot
-	@if [ -d $< ]; then echo Source code already downloaded; false; fi
+
+optiboot/optiboot/bootloaders/optiboot:
+	@if [ -d  $@ ]; then echo Source code already downloaded; false; fi
 	git clone https://github.com/Optiboot/optiboot.git
-	ln -s $< $@
-	cd optiboot; patch -p0 < ../Patches/optiboot.patch
+	cd optiboot; patch -p1 < ../Patches/optiboot.patch
+	if [ ! -h src ]; then ln -s $@ src; fi
 
 compile: primary.elf secondary.elf optiboot.elf dualboot.elf
 
