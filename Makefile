@@ -48,7 +48,6 @@ optiboot/optiboot/bootloaders/optiboot:
 	@if [ -d  $@ ]; then echo Source code already downloaded; false; fi
 	git clone https://github.com/Optiboot/optiboot.git
 	cd optiboot; patch -p1 < ../Patches/optiboot.patch
-	if [ ! -h src ]; then ln -s $@ src; fi
 
 compile: primary.elf secondary.elf optiboot.elf dualboot.elf
 

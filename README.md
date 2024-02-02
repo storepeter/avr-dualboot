@@ -1,4 +1,8 @@
 
+You can read more about this on my BLOG
+
+	http://storepeter.dk/3d-printer/avr-dualboot-bootloader
+:
 First you should backup the Firmware currently on the MCU
 
 Connect your favorite ISP tool, I use USBasp (see README.USBasp)
