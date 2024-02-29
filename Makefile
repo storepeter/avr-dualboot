@@ -16,6 +16,7 @@ SECONDARY := secondary.elf
 MCU       := atmega2560
 FREQ      := 16000000
 BAUD      := 115200
+CU_BAUD   := 250000
 
 # a backup of the original firmware will be saved to the dir below
 FIRMWARE_DIR   := Preserved_Firmware/$(notdir $(TTY))
@@ -42,12 +43,26 @@ AVRDUDE := avrdude
 default:
 	./dualtool.sh
 
-clone: optiboot/optiboot/bootloaders/optiboot
+clone: optiboot.src
 
-optiboot/optiboot/bootloaders/optiboot:
-	@if [ -d  $@ ]; then echo Source code already downloaded; false; fi
-	git clone https://github.com/Optiboot/optiboot.git
-	cd optiboot; patch -p1 < ../Patches/optiboot.patch
+%.src: | %
+# I would have thought (order only) only would get us here if % did not exist
+# would be convenient to use $< instead os $(basename $@)
+# until I under stand this, let bash handle it
+	echo "$$@=$@: | $$<=$<"
+	if [ ! -d  $(basename $@) ]; then \
+		if [ -f Patches/$(basename $@).url ]; then \
+			git -C $(basename $@) clone $$(cat Patches/$(basename $@).url); \
+		fi; \
+		if [ -f Patches/$(basename $@).gitHEAD ]; then \
+			git -C $(basename $@) checkout $$(cat Patches/$(basename $@).gitHEAD) < Patches/$(basename $@).patch; \
+		fi; \
+		if [ -f Patches/$(basename $@).patch ]; then \
+			patch -d $(basename $@) -p1 < Patches/$(basename $@).patch; \
+		fi; \
+	else \
+		echo "Source $(basename $@) exist"; \
+	fi
 
 compile: primary.elf secondary.elf optiboot.elf dualboot.elf
 
@@ -101,7 +116,9 @@ clean:
 
 %.patch:
 	mkdir -p Patches
-	cd $(basename $@); git diff --diff-filter=M > ../Patches/$(basename $@).patch
+	git -C $(basename $@) remote get-url origin > Patches/$(@:patch=url)
+	git -C $(basename $@) rev-parse --short HEAD > Patches/$(@:patch=gitHEAD)
+	git -C $(basename $@) diff --diff-filter=M > Patches/$@
 
 Patches: optiboot.patch
 
@@ -109,5 +126,5 @@ commit: Patches
 	git commit -a
 
 cu:
-	picocom -l $(TTY) -b $(BAUD) --imap=lfcrlf
+	picocom -l $(TTY) -b $(CU_BAUD) --imap=lfcrlf
 
