@@ -1,8 +1,7 @@
-
 You can read more about this on my BLOG
 
 	http://storepeter.dk/3d-printer/avr-dualboot-bootloader
-:
+
 First you should backup the Firmware currently on the MCU
 
 Connect your favorite ISP tool, I use USBasp (see README.USBasp)
@@ -10,7 +9,7 @@ Connect your favorite ISP tool, I use USBasp (see README.USBasp)
 	$ make backup
 
 has created a full backup of the current firmware including bootloader
-but not fuse settings in f.ex:
+but not fuse settings in my case
 
 	$ ls -l Preserved_Firmware/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0
 ```
@@ -26,8 +25,8 @@ total 580
 Defaults is for a bootloader on an ATmega2560 16 Mhz,
 see Makefile for further details.
 
-First we need to get hold of the sources of OptiBoot from Gihub, and apply
-the patches needed to dualboot 2 firmware
+Get hold of the sources of OptiBoot from Gihub, and apply
+the patches that turns optiboot into a  dualboot bootloader
 
 	$ make clone
 
@@ -61,7 +60,7 @@ check for trampolines,handle vector_table, suggest DUAL_BASE
 
 Without options it will show you a map of the flash on the MCU
 
-	$dualtool.sh 
+	$ dualtool.sh 
 
 ```
 # MCU=atmega2560 FLASH=262144 VECT_BASE=0x3fb00 VECT_SZ=256 BOOT_BASE=0x3fc00 BOOT_SZ=1024
@@ -73,11 +72,11 @@ Without options it will show you a map of the flash on the MCU
 
 ```
 
-you can check new bootloader by downloading primary.elf and secondary.elf
+Check the new bootloader by downloading primary.elf and secondary.elf
 
 	$ make flash
 
-You can check what is on MCU using
+CCeck what is on MCU using
 
 	$ ./dualtool.sh
 ```
@@ -91,7 +90,7 @@ You can check what is on MCU using
 # Keep secondary firmware, not erasing
 ```
 
-To restore the original Firmware, with the newly install DualBoot bootloader
+To restore the original Firmware with the newly install DualBoot bootloader
 
 	$ make restore
 
@@ -99,4 +98,4 @@ Now you should have system that works as before, with the difference that it now
 
 Best Regards
 
-StorePeter
+StorePeter (C) 2024 Beerware

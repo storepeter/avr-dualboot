@@ -341,7 +341,7 @@ fi
 
 ## write to flash
 if [ x$DO_PROGRAM = x1 ]; then
-	if [ x$PRIMARY = x -a x$SECONDARY = x -a x$EEPROM = x -a x$ERASE = x -a $DEFAULT = $DEFAULT_NEW]; then
+	if [ x$PRIMARY = x -a x$SECONDARY = x -a x$EEPROM = x -a x$ERASE = x -a x$DEFAULT = x$DEFAULT_NEW ]; then
 		usage "no elf/hex or change for flash/eeprom"
 	fi
 	if [ x$ERASE != x ]; then
